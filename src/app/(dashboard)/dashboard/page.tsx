@@ -79,6 +79,7 @@ export default function DashboardPage() {
             { count: kelasCount },
             { data: txns },
             { data: loansOutstanding },
+            { data: depositsToday },
           ] = await Promise.all([
             supabase.from('savings_accounts').select('balance'),
             supabase
@@ -97,6 +98,15 @@ export default function DashboardPage() {
               .order('created_at', { ascending: false })
               .limit(10),
             supabase.from('loans').select('amount_outstanding').eq('status', 'active'),
+            (() => {
+              const startOfToday = new Date();
+              startOfToday.setHours(0, 0, 0, 0);
+              return supabase
+                .from('savings_transactions')
+                .select('amount')
+                .eq('type', 'deposit')
+                .gte('created_at', startOfToday.toISOString());
+            })(),
           ]);
           const totalSaldoSiswa = (saldo || []).reduce(
             (acc: number, r: any) => acc + Number(r.balance || 0),
@@ -106,10 +116,15 @@ export default function DashboardPage() {
             (acc: number, r: any) => acc + Number(r.amount_outstanding || 0),
             0
           );
+          const totalDepositsToday = (depositsToday || []).reduce(
+            (acc: number, r: any) => acc + Number(r.amount || 0),
+            0
+          );
           const totalTabungan = totalSaldoSiswa - totalLoanOut;
           setStats({
             totalSaldo: totalSaldoSiswa,
             totalTabungan: Math.max(totalTabungan, 0),
+            setoranHariIni: totalDepositsToday,
             pinjamanGuru: totalLoanOut,
             siswaCount: siswaCount || 0,
             kelasCount: kelasCount || 0,
@@ -151,11 +166,18 @@ export default function DashboardPage() {
 
   const teacherStats = [
     {
-      label: 'Saldo Tabungan Siswa',
+      label: 'Total Tabungan Keseluruhan',
       value: formatCurrency(stats.totalSaldo || 0),
       icon: Wallet,
       iconBg: 'bg-blue-100',
       color: 'text-blue-600',
+    },
+    {
+      label: 'Setoran Hari Ini',
+      value: formatCurrency(stats.setoranHariIni || 0),
+      icon: TrendingUp,
+      iconBg: 'bg-emerald-100',
+      color: 'text-emerald-600',
     },
     {
       label: 'Total Tabungan (Net)',
