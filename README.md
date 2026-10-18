@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# Tabungan Siswa
 
-## Getting Started
+Aplikasi web untuk manajemen tabungan siswa yang aman, responsif, dan mudah digunakan untuk lingkungan sekolah.
 
-First, run the development server:
+## Fitur
 
-```bash
+- Autentikasi dengan Supabase Auth (role: guru/admin dan siswa)
+- Manajemen kelas dan siswa
+- Transaksi tabungan (setoran, penarikan) dengan upload bukti foto
+- Manajemen pinjaman dan pembayaran kembali
+- Riwayat transaksi dengan audit trail
+- Dashboard untuk guru dan siswa
+- Penutupan tabungan dengan tanda tangan digital
+- Laporan saldo dan transaksi
+- Row Level Security (RLS) untuk keamanan data
+- Desain mobile-first dan responsif
+
+## Tech Stack
+
+- Next.js 15 (App Router) + TypeScript
+- Tailwind CSS + shadcn/ui
+- Supabase (PostgreSQL, Auth, Storage)
+- React Hook Form + Zod
+- Recharts, date-fns, numeral, jspdf, html2canvas, signature_pad
+- Lucide React, Sonner
+
+## Prasyarat
+
+- Node.js 18+ (rekomendasi Node.js 22)
+- Akun Supabase (proyek baru atau existing)
+- npm atau pnpm
+
+## Konfigurasi Environment Variables
+
+Buat file .env.local berdasarkan .env.example:
+
+`ash
+cp .env.example .env.local
+`
+
+Isi dengan kredensial Supabase:
+
+`env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+`
+
+> **Penting:** Jangan pernah expose SUPABASE_SERVICE_ROLE_KEY ke browser. Gunakan hanya di server-side.
+
+## Setup Supabase
+
+1. Buat proyek baru di [supabase.com](https://supabase.com/)
+2. Jalankan migration SQL di Dashboard Supabase > SQL Editor:
+   - Upload semua file di folder supabase/migrations/ secara berurutan (berdasarkan timestamp)
+3. Buat bucket Storage untuk bukti transaksi:
+   - Dashboard > Storage > Create bucket
+   - Nama: proofs
+   - Public bucket: boleh (dengan RLS), atau gunakan private + signed URL sesuai kebutuhan
+4. Atur Storage RLS jika diperlukan untuk melindungi akses file
+
+## Menjalankan Aplikasi Lokal
+
+`ash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Aplikasi akan berjalan di http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build untuk Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`ash
+npm run build
+npm run start
+`
 
-## Learn More
+## Typecheck & Lint
 
-To learn more about Next.js, take a look at the following resources:
+`ash
+npm run lint
+npx tsc --noEmit
+`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Membuat Akun Guru Pertama (Bootstrap)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Karena registrasi publik tidak disediakan untuk guru, lakukan langkah berikut:
 
-## Deploy on Vercel
+1. Buat user melalui Supabase Auth (Auth > Users > Add user) untuk akun guru pertama
+2. Buat record di tabel profiles dengan role 	eacher atau dmin dan link ke user ID tersebut
+3. Login dengan akun tersebut melalui aplikasi
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment ke Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Push kode ke repository Git
+2. Import proyek di [Vercel](https://vercel.com/)
+3. Tambahkan environment variables yang sama seperti .env.local
+4. Deploy
+
+## Catatan Keamanan
+
+- Semua mutasi divalidasi server-side
+- Row Level Security (RLS) diterapkan di semua tabel sensitif
+- Upload file divalidasi (tipe dan ukuran)
+- Nama file diacak untuk mencegah path traversal
+- Tidak ada kredensial yang dikomit ke repository
+- Audit log untuk aktivitas penting
+
+## Struktur Proyek
+
+`
+tabungansiswa_valid/
+├── src/
+│   ├── app/                 # App Router pages
+│   │   ├── (auth)/
+│   │   ├── (dashboard)/
+│   │   └── auth/
+│   ├── components/          # UI components
+│   │   ├── layout/
+│   │   └── ui/
+│   ├── hooks/               # Custom hooks
+│   ├── lib/                 # Utilities & clients
+│   │   └── utils/
+│   └── types/               # TypeScript types
+├── supabase/
+│   └── migrations/          # Database migrations
+└── public/                  # Static assets
+`
+
+## Lisensi
+
+Proyek ini dikembangkan untuk tujuan pendidikan dan manajemen sekolah.

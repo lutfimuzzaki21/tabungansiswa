@@ -1,0 +1,56 @@
+﻿-- RPC: record withdrawal (atomic) with balance check
+CREATE OR REPLACE FUNCTION public.record_withdrawal(
+  p_student_id UUID,
+  p_amount NUMERIC,
+  p_proof_url TEXT DEFAULT NULL,
+  p_proof_path TEXT DEFAULT NULL,
+  p_notes TEXT DEFAULT NULL,
+  p_idempotency_key UUID DEFAULT NULL,
+  p_recorded_by UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS 
+DECLARE
+  v_acc RECORD;
+  v_balance_before NUMERIC;
+  v_balance_after NUMERIC;
+  v_txn_id UUID;
+  v_txn_num TEXT;
+BEGIN
+  SELECT sa.id, sa.balance INTO STRICT v_acc
+    FROM public.savings_accounts sa
+    WHERE sa.student_id = p_student_id;
+  v_balance_before := v_acc.balance;
+
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'Amount must be > 0';
+  END IF;
+
+  IF v_balance_before < p_amount THEN
+    RAISE EXCEPTION 'Insufficient balance';
+  END IF;
+
+  v_balance_after := v_balance_before - p_amount;
+  v_txn_num := public.generate_txn_number();
+
+  INSERT INTO public.savings_transactions (
+    transaction_number, savings_account_id, student_id, type, amount,
+    balance_before, balance_after, status, proof_url, proof_path, notes,
+    recorded_by, idempotency_key
+  ) VALUES (
+    v_txn_num, v_acc.id, p_student_id, 'withdrawal', p_amount,
+    v_balance_before, v_balance_after, 'completed', p_proof_url, p_proof_path, p_notes,
+    p_recorded_by, p_idempotency_key
+  ) RETURNING id INTO v_txn_id;
+
+  UPDATE public.savings_accounts
+    SET balance = v_balance_after,
+        total_withdrawals = total_withdrawals + p_amount,
+        updated_at = NOW()
+    WHERE id = v_acc.id;
+
+  RETURN jsonb_build_object('success', true, 'transaction_id', v_txn_id, 'balance_after', v_balance_after);
+END;
+;
