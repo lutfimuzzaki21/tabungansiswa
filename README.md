@@ -1,132 +1,152 @@
 ﻿# Tabungan Siswa
 
-Aplikasi web untuk manajemen tabungan siswa yang aman, responsif, dan mudah digunakan untuk lingkungan sekolah.
+Aplikasi web untuk mengelola tabungan siswa, transaksi kas, pinjaman dana, dan laporan keuangan sekolah dalam satu dashboard.
 
-## Fitur
+> Dibangun untuk operasional sekolah yang membutuhkan pencatatan saldo yang rapi, akses berbasis peran, dan tampilan yang nyaman di desktop maupun mobile.
 
-- Autentikasi dengan Supabase Auth (role: guru/admin dan siswa)
-- Manajemen kelas dan siswa
-- Transaksi tabungan (setoran, penarikan) dengan upload bukti foto
-- Manajemen pinjaman dan pembayaran kembali
-- Riwayat transaksi dengan audit trail
-- Dashboard untuk guru dan siswa
+## Fitur Utama
+
+- Dashboard terpisah untuk admin, guru, dan siswa
+- Manajemen data siswa, kelas, dan profil pengguna
+- Setoran dan penarikan tabungan dengan saldo atomik
+- Upload bukti transaksi yang opsional
+- Pencarian siswa saat mencatat transaksi
+- Pinjaman dana guru dan pencatatan pembayaran kembali
+- Riwayat transaksi dan audit log
+- Laporan saldo, total setoran, dan total penarikan per siswa
+- Ekspor laporan ke format `.xlsx`
 - Penutupan tabungan dengan tanda tangan digital
-- Laporan saldo dan transaksi
-- Row Level Security (RLS) untuk keamanan data
-- Desain mobile-first dan responsif
+- Supabase Row Level Security (RLS)
+- Layout responsif untuk desktop dan mobile
 
 ## Tech Stack
 
-- Next.js 15 (App Router) + TypeScript
-- Tailwind CSS + shadcn/ui
-- Supabase (PostgreSQL, Auth, Storage)
-- React Hook Form + Zod
-- Recharts, date-fns, numeral, jspdf, html2canvas, signature_pad
-- Lucide React, Sonner
+- [Next.js 15](https://nextjs.org/) dengan App Router
+- TypeScript, React 19, dan Tailwind CSS
+- [Supabase](https://supabase.com/) untuk PostgreSQL, Auth, Storage, dan RPC
+- Base UI dan komponen UI lokal
+- `xlsx` untuk ekspor laporan
+- Vitest untuk pengujian
+- Lucide React, date-fns, Sonner, dan Signature Pad
 
-## Prasyarat
+## Persyaratan
 
-- Node.js 18+ (rekomendasi Node.js 22)
-- Akun Supabase (proyek baru atau existing)
-- npm atau pnpm
+- Node.js 18 atau lebih baru
+- npm
+- Project Supabase
 
-## Konfigurasi Environment Variables
+## Quick Start
 
-Buat file .env.local berdasarkan .env.example:
-
-`ash
-cp .env.example .env.local
-`
-
-Isi dengan kredensial Supabase:
-
-`env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-`
-
-> **Penting:** Jangan pernah expose SUPABASE_SERVICE_ROLE_KEY ke browser. Gunakan hanya di server-side.
-
-## Setup Supabase
-
-1. Buat proyek baru di [supabase.com](https://supabase.com/)
-2. Jalankan migration SQL di Dashboard Supabase > SQL Editor:
-   - Upload semua file di folder supabase/migrations/ secara berurutan (berdasarkan timestamp)
-3. Buat bucket Storage untuk bukti transaksi:
-   - Dashboard > Storage > Create bucket
-   - Nama: proofs
-   - Public bucket: boleh (dengan RLS), atau gunakan private + signed URL sesuai kebutuhan
-4. Atur Storage RLS jika diperlukan untuk melindungi akses file
-
-## Menjalankan Aplikasi Lokal
-
-`ash
+```bash
+git clone https://github.com/lutfimuzzaki21/tabungansiswa.git
+cd tabungansiswa
 npm install
+```
+
+Buat file `.env.local` di root project:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Jalankan aplikasi development:
+
+```bash
 npm run dev
-`
+```
 
-Aplikasi akan berjalan di http://localhost:3000
+Buka [http://localhost:3000](http://localhost:3000).
 
-## Build untuk Production
+## Setup Database Supabase
 
-`ash
-npm run build
-npm run start
-`
+Untuk membuat database baru, gunakan file utama berikut:
 
-## Typecheck & Lint
+```text
+supabase/full_migration.sql
+```
 
-`ash
+Jalankan seluruh isinya di **Supabase Dashboard > SQL Editor**. File ini mencakup:
+
+- Tabel dan enum aplikasi
+- Trigger profile dan rekening siswa
+- RPC transaksi tabungan
+- RPC pinjaman guru dan pembayaran
+- Row Level Security
+- Storage bucket `proofs` dan policy terkait
+
+Folder `supabase/migrations/` berisi migration historis dan berguna sebagai referensi perubahan bertahap. Untuk project baru, gunakan `full_migration.sql` sebagai sumber setup utama.
+
+### Akun Admin atau Guru Pertama
+
+1. Buat user melalui **Supabase Dashboard > Authentication > Users**.
+2. Salin UUID user tersebut.
+3. Buat atau sesuaikan record pada tabel `profiles` dengan role `admin` atau `teacher`.
+4. Login melalui halaman aplikasi.
+
+Contoh query setelah user dibuat:
+
+```sql
+UPDATE public.profiles
+SET role = 'admin', full_name = 'Administrator'
+WHERE id = 'USER_UUID';
+```
+
+## Perintah Development
+
+```bash
+# Menjalankan development server
+npm run dev
+
+# Menjalankan lint
 npm run lint
-npx tsc --noEmit
-`
 
-## Membuat Akun Guru Pertama (Bootstrap)
+# Menjalankan test
+npm test
 
-Karena registrasi publik tidak disediakan untuk guru, lakukan langkah berikut:
+# Build production
+npm run build
 
-1. Buat user melalui Supabase Auth (Auth > Users > Add user) untuk akun guru pertama
-2. Buat record di tabel profiles dengan role 	eacher atau dmin dan link ke user ID tersebut
-3. Login dengan akun tersebut melalui aplikasi
+# Menjalankan hasil build
+npm run start
+```
 
-## Deployment ke Vercel
+## Struktur Project
 
-1. Push kode ke repository Git
-2. Import proyek di [Vercel](https://vercel.com/)
-3. Tambahkan environment variables yang sama seperti .env.local
-4. Deploy
+```text
+src/
+├── app/
+│   ├── (auth)/          # Halaman login
+│   ├── (dashboard)/     # Halaman utama aplikasi
+│   └── auth/            # Route autentikasi
+├── components/          # Layout dan komponen UI
+├── hooks/               # React hooks
+├── lib/                 # Supabase client dan utility
+└── types/               # TypeScript types
+supabase/
+├── full_migration.sql   # Setup database baru
+└── migrations/          # Migration historis
+tests/                   # Unit dan validation tests
+```
 
-## Catatan Keamanan
+## Keamanan
 
-- Semua mutasi divalidasi server-side
-- Row Level Security (RLS) diterapkan di semua tabel sensitif
-- Upload file divalidasi (tipe dan ukuran)
-- Nama file diacak untuk mencegah path traversal
-- Tidak ada kredensial yang dikomit ke repository
-- Audit log untuk aktivitas penting
+- Jangan commit `.env.local` atau secret Supabase.
+- `SUPABASE_SERVICE_ROLE_KEY` hanya boleh digunakan di server-side.
+- RLS membatasi akses data berdasarkan role pengguna.
+- Validasi nominal, tipe file, dan ukuran file dilakukan sebelum data diproses.
+- RPC transaksi menjaga perubahan saldo tetap atomik.
 
-## Struktur Proyek
+## Deployment
 
-`
-tabungansiswa_valid/
-├── src/
-│   ├── app/                 # App Router pages
-│   │   ├── (auth)/
-│   │   ├── (dashboard)/
-│   │   └── auth/
-│   ├── components/          # UI components
-│   │   ├── layout/
-│   │   └── ui/
-│   ├── hooks/               # Custom hooks
-│   ├── lib/                 # Utilities & clients
-│   │   └── utils/
-│   └── types/               # TypeScript types
-├── supabase/
-│   └── migrations/          # Database migrations
-└── public/                  # Static assets
-`
+Project dapat di-deploy ke Vercel atau platform Node.js lainnya:
+
+1. Push repository ke Git provider.
+2. Import project ke [Vercel](https://vercel.com/).
+3. Tambahkan environment variables yang sama dengan `.env.local`.
+4. Deploy project.
 
 ## Lisensi
 
-Proyek ini dikembangkan untuk tujuan pendidikan dan manajemen sekolah.
+Project ini dikembangkan untuk kebutuhan pendidikan dan manajemen operasional sekolah.
